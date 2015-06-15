@@ -26,6 +26,7 @@ import javax.xml.stream.events.StartDocument;
 import javax.xml.stream.events.StartElement;
 import javax.xml.stream.events.XMLEvent;
 
+import lightXMLFormatter.xml.FormattedCharacters;
 import lightXMLFormatter.xml.FormattedComment;
 import lightXMLFormatter.xml.FormattedAttribute;
 import lightXMLFormatter.xml.FormattedDTD;
@@ -155,7 +156,17 @@ public class StaxHandler {
 	}
 	
 	private void handleCharacters(Characters e) {
-		System.out.println(e.getEventType() + " " + e.toString());
+		if (e.getData().trim().length() == 0) {
+			return;
+		}
+		FormattedCharacters chars = new FormattedCharacters(e.getData());
+		try {
+			FormattedElement parent = elementStack.peek();
+			parent.addChildValue(chars);
+		}
+		catch (EmptyStackException exception) {
+			documentRoot.getRoot().addChildValue(chars);
+		}
 		return;
 	}
 	
@@ -189,7 +200,6 @@ public class StaxHandler {
 	}
 	
 	private void handleEndDocument(EndDocument e) {
-		System.out.println(e.getEventType() + " " + e.toString());
 		return;
 	}
 	

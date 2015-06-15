@@ -26,7 +26,10 @@ public class FormattedElement extends FormattedItem {
 			s += " " + attr.toString();
 		}
 		if (values.size() > 0) {
-			s += ">\n";
+			s += ">";
+			if (!textualValue()) {
+				s += "\n";
+			}
 			for (FormattedItem item : values) {
 				s += item.toString();
 			}
@@ -46,6 +49,15 @@ public class FormattedElement extends FormattedItem {
 		}
 		return false;
 	}
+	
+	private boolean textualValue() {
+		for (FormattedItem item : values) {
+			if (!(item instanceof FormattedCharacters)) {
+				return false;
+			}
+		}
+		return true;
+	}
 
 	public ArrayList<FormattedAttribute> getAttributes() {
 		return attrs;
@@ -59,7 +71,25 @@ public class FormattedElement extends FormattedItem {
 		return values;
 	}
 
+	/**
+	 * 
+	 * ...
+	 * 
+	 * Sometimes two or more FormattedCharacters are created for a large body of text and can be merged into one.
+	 */
 	public void addChildValue(FormattedItem value) {
-		values.add(value);
+		if (values.size() > 0) {
+			FormattedItem previous = values.get(values.size() - 1);
+			
+			if (value instanceof FormattedCharacters && previous instanceof FormattedCharacters) {
+				((FormattedCharacters) previous).merge(((FormattedCharacters) value).getCharacters());
+			}
+			else {
+				values.add(value);
+			}
+		}
+		else {
+			values.add(value);
+		}
 	}
 }
