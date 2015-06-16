@@ -152,7 +152,7 @@ public class StaxHandler {
 	
 	private void handleProcessingInstruction(ProcessingInstruction e) {
 		System.out.println(e.getEventType() + " " + e.toString());
-		return;
+		throw new IllegalStateException("Unimplemented feature");
 	}
 	
 	private void handleCharacters(Characters e) {
@@ -184,7 +184,7 @@ public class StaxHandler {
 	
 	private void handleSpace(Characters e) {
 		System.out.println(e.getEventType() + " " + e.toString());
-		return;
+		throw new IllegalStateException("Unimplemented feature");
 	}
 	
 	private void handleStartDocument(StartDocument e) {
@@ -200,6 +200,7 @@ public class StaxHandler {
 	}
 	
 	private void handleEndDocument(EndDocument e) {
+		documentRoot.close();
 		return;
 	}
 	
@@ -224,21 +225,21 @@ public class StaxHandler {
 	
 	private void handleCData(Characters e) {
 		System.out.println(e.getEventType() + " " + e.toString());
-		return;
+		throw new IllegalStateException("Unimplemented feature");
 	}
 	
 	private void handleNamespace(Namespace e) {
 		System.out.println(e.getEventType() + " " + e.toString());
-		return;
+		throw new IllegalStateException("Unimplemented feature");
 	}
 	
 	private void handleNotationDeclaration(NotationDeclaration e) {
 		System.out.println(e.getEventType() + " " + e.toString());
-		return;
+		throw new IllegalStateException("Unimplemented feature");
 	}
 	
 	private void handleEntityDeclaration(EntityDeclaration e) {
 		System.out.println(e.getEventType() + " " + e.toString());
-		return;
+		throw new IllegalStateException("Unimplemented feature");
 	}
 }

@@ -8,6 +8,8 @@ public class FormattedRoot extends FormattedItem {
 	private String charset;
 	private String version;
 	
+	private boolean closed;
+	
 	public FormattedRoot(String charset, String version) {
 		this.charset = charset;
 		this.version = version;
@@ -33,5 +35,13 @@ public class FormattedRoot extends FormattedItem {
 
 	public void setDtd(FormattedDTD dtd) {
 		this.dtd = dtd;
+	}
+	
+	public void close() {
+		closed = true;
+	}
+	
+	public boolean isClosed() {
+		return closed;
 	}
 }
