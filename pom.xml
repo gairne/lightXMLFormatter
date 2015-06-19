@@ -1,0 +1,62 @@
+<project
+	xmlns="http://maven.apache.org/POM/4.0.0"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd"
+>
+	<modelVersion>4.0.0</modelVersion>
+	<groupId>uk.co.gairne.lxmlf</groupId>
+	<artifactId>LightXMLFormatter</artifactId>
+	<version>0.0.1-SNAPSHOT</version>
+	<name>A lightweight XML formatting tool that will allow custom policies</name>
+	<description>This application was born out of the frustration that modern editors have poor support for XML formatting. This tool not only indents XML, but also cares about position and order of attributes. Designed be easily extended for your custom formatting needs.</description>
+	<properties>
+		<maven.compiler.target>1.7</maven.compiler.target>
+		<maven.compiler.source>1.7</maven.compiler.source>
+		<app.main.class>uk.co.gairne.lxmlf.Main</app.main.class>
+	</properties>
+	<build>
+		<sourceDirectory>src</sourceDirectory>
+		<plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-eclipse-plugin</artifactId>
+				<version>2.10</version>
+				<configuration>
+					<downloadSources>true</downloadSources>
+					<downloadJavadocs>true</downloadJavadocs>
+				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-shade-plugin</artifactId>
+				<version>2.4</version>
+				<executions>
+					<execution>
+						<phase>package</phase>
+						<goals>
+							<goal>shade</goal>
+						</goals>
+						<configuration>
+							<transformers>
+								<transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+									<manifestEntries>
+										<Main-Class>${app.main.class}</Main-Class>
+										<X-Compile-Source-JDK>${maven.compile.source}</X-Compile-Source-JDK>
+										<X-Compile-Target-JDK>${maven.compile.target}</X-Compile-Target-JDK>
+									</manifestEntries>
+								</transformer>
+							</transformers>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+		</plugins>
+	</build>
+	<dependencies>
+		<dependency>
+			<groupId>org.apache.commons</groupId>
+			<artifactId>commons-lang3</artifactId>
+			<version>3.4</version>
+		</dependency>
+	</dependencies>
+</project>
