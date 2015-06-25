@@ -26,7 +26,7 @@ public class Main {
 			}
 			else {
 				int i = 0;
-				while (!new File(args[0] + ".bak." + i).exists()) {
+				while (new File(args[0] + ".bak." + i).exists()) {
 					i++;
 				}
 				System.out.println("Backing up " + args[0] + " to " + args[0] + ".bak." + i);
