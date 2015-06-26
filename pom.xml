@@ -6,7 +6,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>uk.co.gairne.lxmlf</groupId>
 	<artifactId>LightXMLFormatter</artifactId>
-	<version>0.0.2</version>
+	<version>0.0.3-SNAPSHOT</version>
 	<name>A lightweight XML formatting tool that will allow custom policies</name>
 	<description>This application was born out of the frustration that modern editors have poor support for XML formatting. This tool not only indents XML, but also cares about position and order of attributes. Designed be easily extended for your custom formatting needs.</description>
 	<properties>
