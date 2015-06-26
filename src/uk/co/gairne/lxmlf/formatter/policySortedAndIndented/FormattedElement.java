@@ -9,6 +9,8 @@ import java.util.Set;
 import org.apache.commons.lang3.StringUtils;
 
 import uk.co.gairne.lxmlf.exception.ValidationException;
+import uk.co.gairne.lxmlf.formatter.sortable.SortableAttribute;
+import uk.co.gairne.lxmlf.formatter.sortable.SortableNamespace;
 import uk.co.gairne.lxmlf.xml.definition.Attribute;
 import uk.co.gairne.lxmlf.xml.definition.Element;
 import uk.co.gairne.lxmlf.xml.definition.ElementValue;
@@ -21,7 +23,6 @@ public class FormattedElement implements Element {
 	private List<Attribute> attributes;
 	private QName tagName;
 	private List<ElementValue> value;
-	private Element parent;
 	
 	private boolean isRoot = false;
 		
@@ -30,97 +31,124 @@ public class FormattedElement implements Element {
 		if (tagName == null || tagName.getLocalPart() == null) {
 			throw new ValidationException("Elements must have a tag name.");
 		}
-		String s = PolicyUtil.indent("<" + tagName.toString(), ancestryLevel);
+		String s = PolicyUtil.generateIndent(ancestryLevel) + "<" + tagName.toString();
 		
+		// For attribute and namespace writing:
+		// Ignoring indentation, which column are we on
+		int currentCharacter = 0;
+		
+		// Attach namespaces to the root element as attributes.
 		if (isRoot) {
-			s += " ";
-			Set<Namespace> namespacesSet = getNamespaces();
-			List<Namespace> namespacesList = new ArrayList<Namespace>();
 			
-			// If this set contains entirely FormattedNamespace, we can sort.
-			List<FormattedNamespace> sns = new ArrayList<FormattedNamespace>();
-			for (Namespace ns : namespacesSet) {
-				if (!(ns instanceof FormattedNamespace)) {
-					sns = null;
-					break;
-				}
-				else {
-					sns.add((FormattedNamespace) ns);
-				}
-			}
-			// Otherwise, we cannot sort.
-			if (sns != null) {
-				Collections.sort(sns);
-				for (Namespace ns : sns) {
-					namespacesList.add(ns);
-				}
-			}
-			else {
-				namespacesList = new ArrayList<Namespace>(namespacesSet);
-			}
+			// Namespaces
+			List<Namespace> namespacesList = sortNamespaces();
 			
 			for (Namespace n : namespacesList) {
 				if (PolicyUtil.LINE_PER_ATTRIBUTE && namespacesList.size() >= PolicyUtil.ATTRIBUTE_THRESHOLD) {
 					if (PolicyUtil.INDENT_ATTRIBUTE_TO_TAG) {
-						s += "\n" + PolicyUtil.indent("", ancestryLevel) + StringUtils.repeat(" ", tagName.toString().length()+2) + n.toString(ancestryLevel, true);
+						s += "\n" + PolicyUtil.generateIndent(ancestryLevel) + StringUtils.repeat(" ", tagName.toString().length()+2) + n.toString(ancestryLevel, true);
 					}
 					else {
-						s += "\n" + PolicyUtil.indent("", ancestryLevel+1) + n.toString(ancestryLevel, true);
+						s += "\n" + PolicyUtil.generateIndent(ancestryLevel+1) + n.toString(ancestryLevel, true);
+					}
+				}
+				else if (PolicyUtil.ATTRIBUTE_CHAR_THRESHOLD >= 0) {
+					String nextNSStr = n.toString(ancestryLevel, true);
+					if (currentCharacter == 0 || currentCharacter + nextNSStr.length() + 1 <= PolicyUtil.ATTRIBUTE_CHAR_THRESHOLD) {
+						s += " " + nextNSStr;
+						currentCharacter += nextNSStr.length() + 1;
+					}
+					else {
+						if (PolicyUtil.INDENT_ATTRIBUTE_TO_TAG) {
+							s += "\n" + PolicyUtil.generateIndent(ancestryLevel) + StringUtils.repeat(" ", tagName.toString().length()+2) + nextNSStr;
+						}
+						else {
+							s += "\n" + PolicyUtil.generateIndent(ancestryLevel+1) + nextNSStr;
+						}
+						currentCharacter = nextNSStr.length();
 					}
 				}
 				else {
-					return n.toString(ancestryLevel, true);
+					s += " " + n.toString(ancestryLevel, true);
 				}
 			}
 		}
 		
+		// Attach attributes after the tag (and namespaces if applicable)
 		if (attributes != null) {
+			List<Attribute> attributesList = attributes;
 			if (PolicyUtil.SORT_ATTRIBUTES) {
-				ArrayList<FormattedAttribute> sortedAttr = new ArrayList<FormattedAttribute>();
-				for (Attribute attr : attributes) {
-					if (attr instanceof FormattedAttribute) {
-						sortedAttr.add((FormattedAttribute) attr);
+				attributesList = sortAttributes();
+			}
+			
+			for (Attribute attr : attributesList) {
+				if (PolicyUtil.LINE_PER_ATTRIBUTE && attributesList.size() >= PolicyUtil.ATTRIBUTE_THRESHOLD) {
+					if (PolicyUtil.INDENT_ATTRIBUTE_TO_TAG) {
+						s += "\n" + PolicyUtil.generateIndent(ancestryLevel) + StringUtils.repeat(" ", tagName.toString().length()+2) + attr.toString(ancestryLevel);
+					}
+					else {
+						s += "\n" + PolicyUtil.generateIndent(ancestryLevel+1) + attr.toString(ancestryLevel);
 					}
 				}
-				Collections.sort(sortedAttr);
-				for (FormattedAttribute attr : sortedAttr) {
-					s += " " + attr.toString(ancestryLevel);
+				else if (PolicyUtil.ATTRIBUTE_CHAR_THRESHOLD >= 0) {
+					String nextAttrStr = attr.toString(ancestryLevel);
+					if (currentCharacter == 0 || currentCharacter + nextAttrStr.length() + 1 <= PolicyUtil.ATTRIBUTE_CHAR_THRESHOLD) {
+						s += " " + nextAttrStr;
+						currentCharacter += nextAttrStr.length() + 1;
+					}
+					else {
+						if (PolicyUtil.INDENT_ATTRIBUTE_TO_TAG) {
+							s += "\n" + PolicyUtil.generateIndent(ancestryLevel) + StringUtils.repeat(" ", tagName.toString().length()+2) + nextAttrStr;
+						}
+						else {
+							s += "\n" + PolicyUtil.generateIndent(ancestryLevel+1) + nextAttrStr;
+						}
+						currentCharacter = nextAttrStr.length();
+					}
 				}
-			}
-			else {
-				for (Attribute attr : attributes) {
+				else {
 					s += " " + attr.toString(ancestryLevel);
 				}
 			}
 		}
 		
-		if (hasEmptyValue()) {
-			if (PolicyUtil.LINE_PER_ATTRIBUTE && (attributes != null ? attributes.size() >= PolicyUtil.ATTRIBUTE_THRESHOLD : false) && PolicyUtil.ANGLE_BRACKET_ON_NEW_LINE) {
-				s += "\n" + PolicyUtil.indent("/>\n", ancestryLevel);
-			}
-			else {
-				s += " />\n";
-			}
+		// End of opening element
+		
+		// We place the end of element bracket on a new line if:
+		//  1) We are splitting attributes over multiple lines
+		//  2) There are enough attributes to meet the splitting threshold
+		//  3) We have turned on placement of element bracket on a new line
+		if (PolicyUtil.LINE_PER_ATTRIBUTE && (attributes != null ? attributes.size() >= PolicyUtil.ATTRIBUTE_THRESHOLD : false) && PolicyUtil.ANGLE_BRACKET_ON_NEW_LINE) {
+			s += "\n" + PolicyUtil.generateIndent(ancestryLevel) + (hasEmptyValue() ? "/" : "") + ">\n";
 		}
 		else {
-			if (PolicyUtil.LINE_PER_ATTRIBUTE && (attributes != null ? attributes.size() >= PolicyUtil.ATTRIBUTE_THRESHOLD : false) && PolicyUtil.ANGLE_BRACKET_ON_NEW_LINE) {
-				s += "\n" + PolicyUtil.indent(">", ancestryLevel);
-			}
-			else {
-				s += ">";
-			}
+			s += (hasEmptyValue() ? " />" : ">");
+		}
+		
+		// Handle the value
+		if (!hasEmptyValue()) {
+			// If the value is purely text-based
 			if (hasSimpleValue()) {
 				for (ElementValue item : value) {
 					s += PolicyUtil.cleanWhitespace(item.toString(ancestryLevel+1));
 				}
-				s += "</" + tagName.toString(ancestryLevel) + ">\n";
 			}
 			else {
 				s += "\n";
 				for (ElementValue item : value) {
-					s += item.toString(ancestryLevel+1);
+					s += item.toString(ancestryLevel+1) + "\n";
 				}
-				s += PolicyUtil.indent("</" + tagName.toString(ancestryLevel) + ">\n", ancestryLevel);
+			}
+		}
+		
+		// Close element
+		if (!hasEmptyValue()) {
+			if (hasSimpleValue()) {
+				// No new line after the textual value
+				s += "</" + tagName.toString(ancestryLevel) + ">";
+			}
+			else {
+				s += PolicyUtil.generateIndent(ancestryLevel) + "</" + tagName.toString(ancestryLevel) + ">";
 			}
 		}
 		
@@ -140,6 +168,23 @@ public class FormattedElement implements Element {
 	@Override
 	public void setAttributes(List<Attribute> list) {
 		attributes = list;
+	}
+	
+	private List<Attribute> sortAttributes() {
+		List<Attribute> sortedList = new ArrayList<Attribute>();
+		ArrayList<SortableAttribute> sortedAttributes = new ArrayList<SortableAttribute>();
+		for (Attribute attr : attributes) {
+			if (attr instanceof SortableAttribute) {
+				sortedAttributes.add((SortableAttribute) attr);
+			}
+			else {
+				// This attribute cannot be sorted, add it directly to the returned list.
+				sortedList.add(attr);
+			}
+		}
+		Collections.sort(sortedAttributes);
+		sortedList.addAll(sortedAttributes);
+		return sortedList;
 	}
 	
 	@Override
@@ -163,6 +208,14 @@ public class FormattedElement implements Element {
 	@Override
 	public List<ElementValue> getValue() {
 		return value;
+	}
+	
+	@Override
+	public ElementValue getValue(int n) {
+		if (value == null || value.size() <= n) {
+			return null;
+		}
+		return value.get(n);
 	}
 	
 	@Override
@@ -195,7 +248,12 @@ public class FormattedElement implements Element {
 	
 	@Override
 	public boolean hasSimpleValue() {
-		return (value != null && value.size() == 1 && value.get(0) instanceof Textual);
+		for (ElementValue item : value) {
+			if (!(item instanceof Textual)) {
+				return false;
+			}
+		}
+		return value != null && value.size() > 0;
 	}
 	
 	@Override
@@ -230,16 +288,6 @@ public class FormattedElement implements Element {
 		
 		return value.get(0);
 	}
-
-	@Override
-	public Element getParent() {
-		return parent;
-	}
-
-	@Override
-	public void setParent(Element item) {
-		parent = item;
-	}
 	
 	@Override
 	public Set<Namespace> getNamespaces() {
@@ -257,6 +305,23 @@ public class FormattedElement implements Element {
 		
 		return ns;
 	}
+	
+	private List<Namespace> sortNamespaces() {
+		List<Namespace> sortedList = new ArrayList<Namespace>();
+		List<SortableNamespace> sortedNamespaces = new ArrayList<SortableNamespace>();
+		for (Namespace ns : getNamespaces()) {
+			if (ns instanceof SortableNamespace) {
+				sortedNamespaces.add((SortableNamespace) ns);
+			}
+			else {
+				// This attribute cannot be sorted, add it directly to the returned list.
+				sortedList.add(ns);
+			}
+		}
+		Collections.sort(sortedNamespaces);
+		sortedList.addAll(sortedNamespaces);
+		return sortedList;
+	}
 
 	@Override
 	public boolean isRoot() {
@@ -266,5 +331,106 @@ public class FormattedElement implements Element {
 	@Override
 	public void setRoot() {
 		isRoot = true;
+	}
+
+	@Override
+	public boolean valueEquals(Element element) {
+		if (getAttributes() == null) {
+			if (element.getAttributes() != null) return false;
+		}
+		else {
+			if (!getAttributes().equals(element.getAttributes())) return false;
+		}
+		
+		if (getName() == null) {
+			if (element.getName() != null) return false;
+		}
+		else {
+			if (!getName().equals(element.getName())) return false;
+		}
+		
+		if (getValue() == null) {
+			if (element.getValue() != null) return false;
+		}
+		else {
+			if (!getValue().equals(element.getValue())) return false;
+		}
+		
+		if (getNamespaces() == null) {
+			if (element.getNamespaces() != null) return false;
+		}
+		else {
+			if (!getNamespaces().equals(element.getNamespaces())) return false;
+		}
+		
+		return isRoot == element.isRoot();
+	}
+	
+	public void compare(Element element, String location) {
+		if (!valueEquals(element)) {
+			System.out.println("Difference at location " + location);
+			
+			if (toString().length() <= 50) {
+				System.out.println("A: " + toString());
+			}
+			else {
+				System.out.println("A: " + toString().substring(0, 50) + "...");
+			}
+			if (element.toString().length() <= 50) {
+				System.out.println("B: " + element.toString());
+			}
+			else {
+				System.out.println("B: " + element.toString().substring(0, 50) + "...");
+			}
+			
+			if (!PolicyUtil.SCAN_CHILDREN_FOR_DIFFERENCES_IF_NOT_EQUAL) {
+				return;
+			}
+		}
+		
+		if (value != null) {
+			int childNo = 0;
+			for (ElementValue item : value) {
+				if (item instanceof Element) {
+					ElementValue oppositeItem = element.getValue(childNo);
+					if (oppositeItem instanceof Element) {
+						((Element) item).compare((Element) element.getValue(childNo), location + "." + childNo);
+					}
+					else {
+						System.out.println("Child mismatch at location " + location + "." + childNo);
+						
+						if (item.toString().length() <= 50) {
+							System.out.println("A: " + item.toString());
+						}
+						else {
+							System.out.println("A: " + item.toString().substring(0, 50) + "...");
+						}
+						if (oppositeItem.toString().length() <= 50) {
+							System.out.println("B: " + oppositeItem.toString());
+						}
+						else {
+							System.out.println("B: " + oppositeItem.toString().substring(0, 50) + "...");
+						}
+					}
+				}
+				childNo++;
+			}
+		}
+	}
+	
+	@Override
+	public boolean equals(Object other) {
+		if (other == null || !(other instanceof Element)) {
+			return false;
+		}
+		
+		Element otherElement = (Element) other;
+		
+		return valueEquals(otherElement);
+	}
+	
+	@Override
+	public int hashCode() {
+		return (getName() != null ? getName().hashCode() : 0) + (getValue() != null ? getValue().hashCode() : 0) + (getAttributes() != null ? getAttributes().hashCode() : 0) + (getNamespaces() != null ? getNamespaces().hashCode() : 0);
 	}
 }

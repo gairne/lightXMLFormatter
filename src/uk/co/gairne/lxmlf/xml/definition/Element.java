@@ -9,6 +9,7 @@ public interface Element extends ElementValue {
 	public abstract QName getName();
 	public abstract void setName(QName qname);
 	public abstract List<ElementValue> getValue();
+	public abstract ElementValue getValue(int n);
 	public abstract void setValue(List<ElementValue> list);
 	public abstract void addValue(ElementValue elementvalue);
 	public abstract boolean hasAttribute(Attribute attribute);
@@ -35,4 +36,7 @@ public interface Element extends ElementValue {
 	 * @return True if this element's value contains child elements (including child elements alongside text)
 	 */
 	public boolean hasComplexValue();
+	
+	public abstract boolean valueEquals(Element element);
+	public void compare(Element value, String location);
 }

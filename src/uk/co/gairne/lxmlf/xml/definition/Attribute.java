@@ -9,7 +9,7 @@ public interface Attribute extends Item {
 	public abstract void setValue(String string);
 	public abstract String getType();
 	public abstract void setType(String string);
-	public abstract Element getParent();
-	public abstract void setParent(Element item);
 	public abstract Set<Namespace> getNamespaces();
+	
+	public abstract boolean valueEquals(Attribute attribute);
 }

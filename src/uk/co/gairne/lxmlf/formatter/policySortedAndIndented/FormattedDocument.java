@@ -6,10 +6,12 @@ import java.util.Set;
 
 import uk.co.gairne.lxmlf.exception.ParserException;
 import uk.co.gairne.lxmlf.exception.ValidationException;
+import uk.co.gairne.lxmlf.xml.definition.Attribute;
 import uk.co.gairne.lxmlf.xml.definition.Comment;
 import uk.co.gairne.lxmlf.xml.definition.DTD;
 import uk.co.gairne.lxmlf.xml.definition.Document;
 import uk.co.gairne.lxmlf.xml.definition.Element;
+import uk.co.gairne.lxmlf.xml.definition.ElementValue;
 import uk.co.gairne.lxmlf.xml.definition.Namespace;
 
 public class FormattedDocument implements Document {
@@ -32,32 +34,39 @@ public class FormattedDocument implements Document {
 		if (version == null) {
 			throw new ValidationException("XML documents must have a version.");
 		}
-		String s = PolicyUtil.indent("<?xml version=\"" + PolicyUtil.cleanWhitespace(version) + "\"", ancestryLevel);
 		
+		// Document prolog - version
+		String s = PolicyUtil.generateIndent(ancestryLevel) +  "<?xml version=\"" + PolicyUtil.cleanWhitespace(version) + "\"";
+		
+		// Document prolog - charset
 		if (charset != null) {
 			s += " encoding='" + PolicyUtil.cleanWhitespace(charset) + "'";
 		}
 		s += "?>\n";
 		
+		// Any comments between Document prolog and DTD
 		if (commentsAboveDTD != null) {
 			for (Comment c : commentsAboveDTD) {
 				s += c.toString(ancestryLevel);
 			}
 		}
 		
-		// DTD and root elements indent themselves.
+		// DTD
 		if (dtd != null) {
 			s += dtd.toString(ancestryLevel) + "\n";
 		}
 		
+		// Any comments between DTD and root
 		if (commentsAboveRoot != null) {
 			for (Comment c : commentsAboveRoot) {
 				s += c.toString(ancestryLevel);
 			}
 		}
 		
+		// Root
 		s += root.toString(ancestryLevel);
 		
+		// Any comments at document end
 		if (commentsBelowRoot != null) {
 			for (Comment c : commentsBelowRoot) {
 				s += c.toString(ancestryLevel);
@@ -176,5 +185,89 @@ public class FormattedDocument implements Document {
 		else {
 			throw new ParserException("Invalid comment location.");
 		}
+	}
+
+	@Override
+	public boolean valueEquals(Document document) {
+		if (getDTD() == null) {
+			if (document.getDTD() != null) return false;
+		}
+		else {
+			if (!getDTD().equals(document.getDTD())) return false;
+		}
+		
+		if (getRoot() == null) {
+			if (document.getRoot() != null) return false;
+		}
+		else {
+			if (!getRoot().equals(document.getRoot())) return false;
+		}
+		
+		if (getCharset() == null) {
+			if (document.getCharset() != null) return false;
+		}
+		else {
+			if (!getCharset().equals(document.getCharset())) return false;
+		}
+		
+		if (getVersion() == null) {
+			if (document.getVersion() != null) return false;
+		}
+		else {
+			if (!getVersion().equals(document.getVersion())) return false;
+		}
+		
+		if (getComments(COMMENT_LOCATION.POSTPROLOG_PREDTD) == null) {
+			if (document.getComments(COMMENT_LOCATION.POSTPROLOG_PREDTD) != null) return false;
+		}
+		else {
+			if (!getComments(COMMENT_LOCATION.POSTPROLOG_PREDTD).equals(document.getComments(COMMENT_LOCATION.POSTPROLOG_PREDTD))) return false;
+		}
+		
+		if (getComments(COMMENT_LOCATION.POSTDTD_PREROOT) == null) {
+			if (document.getComments(COMMENT_LOCATION.POSTDTD_PREROOT) != null) return false;
+		}
+		else {
+			if (!getComments(COMMENT_LOCATION.POSTDTD_PREROOT).equals(document.getComments(COMMENT_LOCATION.POSTDTD_PREROOT))) return false;
+		}
+		
+		if (getComments(COMMENT_LOCATION.POSTROOT) == null) {
+			if (document.getComments(COMMENT_LOCATION.POSTROOT) != null) return false;
+		}
+		else {
+			if (!getComments(COMMENT_LOCATION.POSTROOT).equals(document.getComments(COMMENT_LOCATION.POSTROOT))) return false;
+		}
+		
+		if (getNamespaces() == null) {
+			if (document.getNamespaces() != null) return false;
+		}
+		else {
+			if (!getNamespaces().equals(document.getNamespaces())) return false;
+		}
+		
+		return completed == document.isComplete();
+	}
+	
+	@Override
+	public boolean equals(Object other) {
+		if (other == null || !(other instanceof Document)) {
+			return false;
+		}
+		
+		Document otherDocument = (Document) other;
+		
+		return valueEquals(otherDocument);
+	}
+	
+	public void compare(Document document) {
+		getRoot().compare(document.getRoot(), "Root");
+	}
+	
+	@Override
+	public int hashCode() {
+		return (getDTD() != null ? getDTD().hashCode() : 0) + (getRoot() != null ? getRoot().hashCode() : 0) + (getCharset() != null ? getCharset().hashCode() : 0) + (getVersion() != null ? getVersion().hashCode() : 0) + (getNamespaces() != null ? getNamespaces().hashCode() : 0)
+				+ (getComments(COMMENT_LOCATION.POSTPROLOG_PREDTD) != null ? getComments(COMMENT_LOCATION.POSTPROLOG_PREDTD).hashCode() : 0)
+				+ (getComments(COMMENT_LOCATION.POSTDTD_PREROOT) != null ? getComments(COMMENT_LOCATION.POSTDTD_PREROOT).hashCode() : 0)
+				+ (getComments(COMMENT_LOCATION.POSTROOT) != null ? getComments(COMMENT_LOCATION.POSTROOT).hashCode() : 0);
 	}
 }

@@ -4,6 +4,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 import uk.co.gairne.lxmlf.exception.ValidationException;
+import uk.co.gairne.lxmlf.xml.definition.Attribute;
 import uk.co.gairne.lxmlf.xml.definition.Element;
 import uk.co.gairne.lxmlf.xml.definition.Namespace;
 import uk.co.gairne.lxmlf.xml.definition.Textual;
@@ -12,7 +13,6 @@ public class FormattedTextual implements Textual {
 
 	private String text;
 	private String type;
-	private Element parent;
 	
 	public FormattedTextual(String text) {
 		setText(text);
@@ -56,20 +56,52 @@ public class FormattedTextual implements Textual {
 	public void setType(String string) {
 		this.type = string;
 	}
-
-	@Override
-	public Element getParent() {
-		return parent;
-	}
-
-	@Override
-	public void setParent(Element item) {
-		parent = item;
-	}
 	
 	@Override
 	public Set<Namespace> getNamespaces() {
 		Set<Namespace> ns = new HashSet<Namespace>();
 		return ns;
+	}
+
+	@Override
+	public boolean valueEquals(Textual textual) {
+		if (getText() == null) {
+			if (textual.getText() != null) return false;
+		}
+		else {
+			if (!getText().trim().equals(textual.getText().trim())) return false;
+		}
+		
+		if (getType() == null) {
+			if (textual.getType() != null) return false;
+		}
+		else {
+			if (!getType().equals(textual.getType())) return false;
+		}
+		
+		if (getNamespaces() == null) {
+			if (textual.getNamespaces() != null) return false;
+		}
+		else {
+			if (!getNamespaces().equals(textual.getNamespaces())) return false;
+		}
+		
+		return true;
+	}
+	
+	@Override
+	public boolean equals(Object other) {
+		if (other == null || !(other instanceof Textual)) {
+			return false;
+		}
+		
+		Textual otherTextual = (Textual) other;
+		
+		return valueEquals(otherTextual);
+	}
+	
+	@Override
+	public int hashCode() {
+		return (getText() != null ? getText().hashCode() : 0) + (getType() != null ? getType().hashCode() : 0) + (getNamespaces() != null ? getNamespaces().hashCode() : 0);
 	}
 }

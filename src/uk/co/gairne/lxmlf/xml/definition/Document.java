@@ -24,4 +24,7 @@ public interface Document extends Item {
 	public abstract void setComplete();
 	public abstract boolean isValid();
 	public abstract Set<Namespace> getNamespaces();
+	
+	public abstract boolean valueEquals(Document document);
+	public void compare(Document document);
 }

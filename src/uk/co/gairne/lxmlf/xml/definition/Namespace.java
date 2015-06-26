@@ -7,4 +7,5 @@ public interface Namespace extends Item {
 	public abstract void setURI(String string);
 	
 	public abstract String toString(int ancestryLevel, boolean isRootDeclaration);
+	public abstract boolean valueEquals(Namespace namespace);
 }

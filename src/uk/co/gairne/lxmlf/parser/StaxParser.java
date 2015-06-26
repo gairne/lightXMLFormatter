@@ -27,6 +27,8 @@ import javax.xml.stream.events.StartDocument;
 import javax.xml.stream.events.StartElement;
 import javax.xml.stream.events.XMLEvent;
 
+import org.apache.commons.lang3.StringUtils;
+
 import uk.co.gairne.lxmlf.exception.ParserException;
 import uk.co.gairne.lxmlf.exception.ValidationException;
 import uk.co.gairne.lxmlf.formatter.policySortedAndIndented.FormattedAttribute;
@@ -86,6 +88,9 @@ public class StaxParser implements uk.co.gairne.lxmlf.parser.definition.StaxPars
 		
 		if (!finishedDocument.isComplete()) {
 			throw new ValidationException("Reached end of file and no end of document encountered.");
+		}
+		if (!stack.empty()) {
+			throw new ValidationException("Reached end of file and parser stack not empty.");
 		}
 		
 		return finishedDocument;
@@ -187,7 +192,6 @@ public class StaxParser implements uk.co.gairne.lxmlf.parser.definition.StaxPars
 			attribute.setType(eventAttribute.getDTDType());
 			attribute.setValue(eventAttribute.getValue());
 			attribute.setName(PolicyUtil.fromQName(eventAttribute.getName()));
-			attribute.setParent(elem);
 			elem.addAttribute(attribute);
 		}
 		
@@ -219,7 +223,7 @@ public class StaxParser implements uk.co.gairne.lxmlf.parser.definition.StaxPars
 		try {
 			currentElement = (FormattedElement) getCurrentElement();
 			
-			if (currentElement.getName().equals(PolicyUtil.fromQName(event.getName()))) {
+			if (!currentElement.getName().equals(PolicyUtil.fromQName(event.getName()))) {
 				throw new ParserException("Closed element does not match current open element.");
 			}
 		}
@@ -233,7 +237,6 @@ public class StaxParser implements uk.co.gairne.lxmlf.parser.definition.StaxPars
 		try {
 			parentElement = (FormattedElement) peekCurrentElement();
 			parentElement.addValue(currentElement);
-			currentElement.setParent(parentElement);
 		}
 		catch (EmptyStackException exception) {
 			// This is fine as long as the currentElement was the document root.
@@ -306,7 +309,6 @@ public class StaxParser implements uk.co.gairne.lxmlf.parser.definition.StaxPars
 		try {
 			parentElement = (FormattedElement) peekCurrentElement();
 			parentElement.addValue(comment);
-			comment.setParent(parentElement);
 		}
 		catch (EmptyStackException exception) {
 			// The comment lies outside of the root element
@@ -366,7 +368,6 @@ public class StaxParser implements uk.co.gairne.lxmlf.parser.definition.StaxPars
 		attribute.setType(event.getDTDType());
 		attribute.setValue(event.getValue());
 		attribute.setName(PolicyUtil.fromQName(event.getName()));
-		attribute.setParent(peekCurrentElement());
 		
 		// All attributes were already added on the XMLEvent.STARTELEMENT event.
 		// This event allows us to verify the attribute was added correctly.
@@ -396,13 +397,16 @@ public class StaxParser implements uk.co.gairne.lxmlf.parser.definition.StaxPars
 		try {
 			parentElement = (FormattedElement) peekCurrentElement();
 			
+			if (StringUtils.isBlank(StringUtils.normalizeSpace(event.getData()))) {
+				return;
+			}
+			
 			// The parser seems to sometimes return a body of text as two separate character events. Merge these.
 			if (parentElement.getLastValue() instanceof FormattedTextual) {
 				((FormattedTextual) parentElement.getLastValue()).merge(text.getText());
 			}
 			else {
 				parentElement.addValue(text);
-				text.setParent(parentElement);
 			}
 		}
 		catch (EmptyStackException exception) {

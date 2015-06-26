@@ -1,24 +1,14 @@
 package uk.co.gairne.lxmlf.formatter.policySortedAndIndented;
 
-import java.util.Comparator;
-
 import uk.co.gairne.lxmlf.exception.ValidationException;
+import uk.co.gairne.lxmlf.formatter.sortable.SortableNamespace;
+import uk.co.gairne.lxmlf.xml.definition.Attribute;
 import uk.co.gairne.lxmlf.xml.definition.Namespace;
 
-public class FormattedNamespace implements Comparable<Namespace>, Namespace, Comparator<Namespace> {
+public class FormattedNamespace extends SortableNamespace {
 
 	private String prefix;
 	private String uri;
-	
-	@Override
-	public int compare(Namespace o1, Namespace o2) {
-		return o1.toString().compareTo(o2.toString());
-	}
-
-	@Override
-	public int compareTo(Namespace o) {
-		return this.toString().compareTo(o.toString());
-	}
 	
 	public FormattedNamespace(String prefix, String URI) {
 		setPrefix(prefix);
@@ -26,32 +16,20 @@ public class FormattedNamespace implements Comparable<Namespace>, Namespace, Com
 	}
 	
 	@Override
-	public boolean equals(Object other) {
-		return other instanceof Namespace && getPrefix().equals(((Namespace) other).getPrefix()) && getURI().equals(((Namespace) other).getURI());
-	}
-	
-	@Override
-	public int hashCode() {
-		return getPrefix().hashCode() + uri.hashCode();
-	}
-	
-	@Override
 	public String toString(int ancestryLevel) {
-		if (prefix == null || uri == null) {
-			throw new ValidationException("Namespaces must have a prefix (even if an empty string) and a URI.");
-		}
-		return (prefix.equals("") ? "" : PolicyUtil.cleanWhitespace(prefix) + ":");
+		return toString(ancestryLevel, false);
 	}
 	
 	@Override
 	public String toString(int ancestryLevel, boolean isRootDeclaration) {
-		if (!isRootDeclaration) {
-			return toString(ancestryLevel);
-		}
-		
 		if (prefix == null || uri == null) {
 			throw new ValidationException("Namespaces must have a prefix (even if an empty string) and a URI.");
 		}
+		
+		if (!isRootDeclaration) {
+			return (prefix.equals("") ? "" : PolicyUtil.cleanWhitespace(prefix) + ":");
+		}
+		
 		return "xmlns" + (prefix.equals("") ? "" : ":" + PolicyUtil.cleanWhitespace(prefix)) + "=\"" + uri + "\"";
 	}
 
@@ -78,5 +56,40 @@ public class FormattedNamespace implements Comparable<Namespace>, Namespace, Com
 	@Override
 	public void setURI(String string) {
 		this.uri = string;
+	}
+
+	@Override
+	public boolean valueEquals(Namespace namespace) {
+		if (getPrefix() == null) {
+			if (namespace.getPrefix() != null) return false;
+		}
+		else {
+			if (!getPrefix().equals(namespace.getPrefix())) return false;
+		}
+		
+		if (getURI() == null) {
+			if (namespace.getURI() != null) return false;
+		}
+		else {
+			if (!getURI().equals(namespace.getURI())) return false;
+		}
+		
+		return true;
+	}
+	
+	@Override
+	public boolean equals(Object other) {
+		if (other == null || !(other instanceof Namespace)) {
+			return false;
+		}
+		
+		Namespace otherNamespace = (Namespace) other;
+		
+		return valueEquals(otherNamespace);
+	}
+	
+	@Override
+	public int hashCode() {
+		return (getPrefix() != null ? getPrefix().hashCode() : 0) + (getURI() != null ? getURI().hashCode() : 0);
 	}
 }
